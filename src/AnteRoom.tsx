@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { COLORS } from "./celestial";
+import { Z } from "./z";
 
 interface Props {
   nodeCount: number;
@@ -46,7 +47,7 @@ export function AnteRoom({ nodeCount, syncedAt, onEnter }: Props) {
         position: "fixed",
         inset: 0,
         background: COLORS.deepSky,
-        zIndex: 50,
+        zIndex: Z.GATE,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",

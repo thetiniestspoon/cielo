@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { COLORS } from "./celestial";
 import type { GraphDiff } from "./useVaultGraph";
+import { Z } from "./z";
 
 interface Props {
   diff: GraphDiff;
@@ -19,7 +20,7 @@ export function DiffPill({ diff, onDismiss }: Props) {
         top: 100,
         left: "50%",
         transform: "translateX(-50%)",
-        zIndex: 12,
+        zIndex: Z.CHROME_NOTICE,
         background: "rgba(22, 33, 62, 0.85)",
         backdropFilter: "blur(8px)",
         border: `1px solid ${COLORS.sageGreen}55`,

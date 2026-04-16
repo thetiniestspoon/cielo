@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { COLORS } from "./celestial";
 import type { SkySettings, BreathPattern } from "./settings";
+import { Z } from "./z";
 
 interface Props {
   settings: SkySettings;
@@ -70,7 +71,7 @@ export function SettingsButton({ onClick }: { onClick: () => void }) {
         position: "fixed",
         top: 16,
         right: 16,
-        zIndex: 15,
+        zIndex: Z.CHROME_UI,
         background: "rgba(22, 33, 62, 0.55)",
         backdropFilter: "blur(12px)",
         border: `1px solid ${COLORS.warmStone}33`,
@@ -115,7 +116,7 @@ export function SettingsPanel({ settings, onUpdate, pinnedLabels, onUnpin }: Pro
             inset: 0,
             background: "rgba(26, 26, 46, 0.78)",
             backdropFilter: "blur(8px)",
-            zIndex: 40,
+            zIndex: Z.MODAL,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",

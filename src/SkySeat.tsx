@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { COLORS } from "./celestial";
 import type { ViewMode } from "./useSkySeat";
 import type { BreathPattern } from "./settings";
+import { Z } from "./z";
 
 interface ToggleProps {
   view: ViewMode;
@@ -25,7 +26,7 @@ export function SkySeatToggle({ view, onRequestView, onCycle }: ToggleProps) {
         transform: "translateX(-50%)",
         display: "flex",
         gap: 0,
-        zIndex: 15,
+        zIndex: Z.CHROME_UI,
         background: "rgba(22, 33, 62, 0.55)",
         backdropFilter: "blur(12px)",
         border: `1px solid ${COLORS.warmStone}33`,
@@ -173,7 +174,7 @@ export function SkySeatRitual({ open, pendingView, prompt, breathPattern = "4-6"
         inset: 0,
         background: "rgba(26, 26, 46, 0.78)",
         backdropFilter: "blur(14px)",
-        zIndex: 30,
+        zIndex: Z.RITUAL,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",

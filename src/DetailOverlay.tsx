@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { VaultEdge, CelestialType, Pillar } from "./types";
 import { COLORS, getCelestialColor } from "./celestial";
+import { Z } from "./z";
 
 interface OverlayNode {
   id: string;
@@ -74,7 +75,7 @@ export function DetailOverlay({ node, edges, onClose, onNavigate, onBack, pinned
         borderTop: "1px solid rgba(168, 181, 160, 0.2)",
         borderRadius: "16px 16px 0 0",
         padding: "16px 24px",
-        zIndex: 20,
+        zIndex: Z.FOCUS,
         overflowY: expanded ? "auto" : "hidden",
         fontFamily: "'Nunito', system-ui, sans-serif",
         color: COLORS.softCream,

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { COLORS, getCelestialColor, getCelestialType } from "./celestial";
 import type { CelestialNode } from "./SkyCanvas";
+import { Z } from "./z";
 
 interface Props {
   nodes: CelestialNode[];
@@ -72,7 +73,7 @@ export function SearchBar({ nodes, onSelect }: Props) {
         position: "fixed",
         top: 16,
         right: 16,
-        zIndex: 15,
+        zIndex: Z.CHROME_UI,
         width: 260,
       }}
     >

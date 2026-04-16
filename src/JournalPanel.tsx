@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { COLORS } from "./celestial";
+import { Z } from "./z";
 
 interface Entry {
   date: string; // YYYY-MM-DD
@@ -21,7 +22,7 @@ export function JournalButton({ onClick }: { onClick: () => void }) {
         position: "fixed",
         top: 16,
         right: 60,
-        zIndex: 15,
+        zIndex: Z.CHROME_UI,
         background: "rgba(22, 33, 62, 0.55)",
         backdropFilter: "blur(12px)",
         border: `1px solid ${COLORS.warmStone}33`,
@@ -72,7 +73,7 @@ export function JournalPanel({ open, onClose }: Props) {
         inset: 0,
         background: "rgba(26, 26, 46, 0.78)",
         backdropFilter: "blur(8px)",
-        zIndex: 40,
+        zIndex: Z.MODAL,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",

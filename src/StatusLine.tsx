@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { COLORS } from "./celestial";
 import type { ViewMode } from "./useSkySeat";
 import type { WeatherCell } from "./useWeather";
+import { Z } from "./z";
 
 interface Props {
   view: ViewMode;
@@ -54,7 +55,7 @@ export function StatusLine({ view, cells, vaultSyncedAt, nodeCount }: Props) {
         top: 60,
         left: "50%",
         transform: "translateX(-50%)",
-        zIndex: 14,
+        zIndex: Z.CHROME_STATUS,
         background: "rgba(22, 33, 62, 0.42)",
         border: `1px solid ${COLORS.warmStone}22`,
         borderRadius: 14,

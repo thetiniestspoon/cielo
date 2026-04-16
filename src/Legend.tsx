@@ -1,4 +1,5 @@
 import { COLORS } from "./celestial";
+import { Z } from "./z";
 
 const ITEMS = [
   { color: COLORS.starGlow, label: "Projects & Apps" },
@@ -14,7 +15,7 @@ export function Legend() {
         position: "fixed",
         bottom: 16,
         right: 16,
-        zIndex: 10,
+        zIndex: Z.CHROME_INFO,
         display: "flex",
         flexDirection: "column",
         gap: 5,

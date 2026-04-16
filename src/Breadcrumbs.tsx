@@ -1,5 +1,6 @@
 import { COLORS, getCelestialColor } from "./celestial";
 import type { CelestialNode } from "./SkyCanvas";
+import { Z } from "./z";
 
 interface Props {
   history: string[];
@@ -25,7 +26,7 @@ export function Breadcrumbs({ history, nodes, onNavigate, selectedId }: Props) {
         display: "flex",
         alignItems: "center",
         gap: 4,
-        zIndex: 15,
+        zIndex: Z.CHROME_UI,
         maxWidth: "80vw",
         overflow: "hidden",
         transition: "bottom 0.3s ease",

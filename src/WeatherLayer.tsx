@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { COLORS, getPillarSectorTarget, PILLAR_ORDER } from "./celestial";
 import type { Pillar } from "./types";
 import type { WeatherCell } from "./useWeather";
+import { Z } from "./z";
 
 interface Props {
   cells: WeatherCell[];
@@ -86,7 +87,7 @@ export function WeatherLayer({ cells, opacity, width, height, reduceMotion = fal
         pointerEvents: "none",
         opacity,
         transition: reduceMotion ? "none" : "opacity 0.5s ease",
-        zIndex: 5,
+        zIndex: Z.WEATHER,
       }}
     >
       <svg width={width} height={height} style={{ display: "block" }}>

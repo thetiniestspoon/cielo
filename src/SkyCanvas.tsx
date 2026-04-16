@@ -26,6 +26,7 @@ import { Breadcrumbs } from "./Breadcrumbs";
 import { findClusters, type Cluster } from "./horoscope";
 import type { ViewMode } from "./useSkySeat";
 import { seededOffset, type SkySettings, isMotionReduced } from "./settings";
+import { Z } from "./z";
 
 export interface CelestialNode extends SimulationNodeDatum {
   id: string;
@@ -57,6 +58,10 @@ export function SkyCanvas({ graph, view = "stars", settings, onTogglePin }: Prop
   const reduceMotion = isMotionReduced(settings);
   const svgRef = useRef<SVGSVGElement>(null);
   const gRef = useRef<SVGGElement | null>(null);
+  // Overlay SVG/group for pinned halos — rendered above WeatherLayer so
+  // anchors never vanish under weather cover or view-mode dimming.
+  const pinnedSvgRef = useRef<SVGSVGElement | null>(null);
+  const gPinnedRef = useRef<SVGGElement | null>(null);
   const simulationRef = useRef<ReturnType<typeof forceSimulation<CelestialNode>> | null>(null);
   const zoomBehaviorRef = useRef<ZoomBehavior<SVGSVGElement, unknown> | null>(null);
   const [selectedNode, setSelectedNode] = useState<CelestialNode | null>(null);
@@ -287,7 +292,7 @@ export function SkyCanvas({ graph, view = "stars", settings, onTogglePin }: Prop
       .force("orbital", orbitalForce)
       .alphaDecay(0.02)
       .on("tick", () => {
-        renderFrame();
+        renderFrameRef.current();
       });
 
     // When reduce-motion is on, let the sim settle and then hold position.
@@ -310,6 +315,10 @@ export function SkyCanvas({ graph, view = "stars", settings, onTogglePin }: Prop
       .scaleExtent([0.2, 5])
       .on("zoom", (event) => {
         g.attr("transform", event.transform);
+        // Keep the pinned-halo overlay in lockstep with the main graph.
+        if (gPinnedRef.current) {
+          select(gPinnedRef.current).attr("transform", event.transform);
+        }
         if (persistTimer) clearTimeout(persistTimer);
         persistTimer = setTimeout(() => {
           try {
@@ -347,6 +356,7 @@ export function SkyCanvas({ graph, view = "stars", settings, onTogglePin }: Prop
 
   // Render function
   const pinnedSet = useMemo(() => new Set(settings.pinnedNodes), [settings.pinnedNodes]);
+  const renderFrameRef = useRef<() => void>(() => {});
   const renderFrame = useCallback(() => {
     const g = gRef.current;
     if (!g) return;
@@ -392,26 +402,27 @@ export function SkyCanvas({ graph, view = "stars", settings, onTogglePin }: Prop
       .attr("stroke-width", 1.25)
       .attr("stroke-dasharray", "1,6");
 
-    // Pinned halos (render under node circles so they glow around them).
-    const haloGroup = gSel.selectAll<SVGGElement, null>(".pinned-halos").data([null]);
-    const haloEnter = haloGroup.enter().append("g").attr("class", "pinned-halos");
-    const haloContainer = haloEnter.merge(haloGroup);
-    const pinnedNodes = nodes.filter((n) => pinnedSet.has(n.id));
-    const halos = haloContainer
-      .selectAll<SVGCircleElement, CelestialNode>("circle")
-      .data(pinnedNodes, (d: CelestialNode) => d.id);
-    halos.exit().remove();
-    halos
-      .enter()
-      .append("circle")
-      .merge(halos)
-      .attr("cx", (d) => d.x ?? 0)
-      .attr("cy", (d) => d.y ?? 0)
-      .attr("r", (d) => d.radius + 8)
-      .attr("fill", "none")
-      .attr("stroke", COLORS.sageGreen)
-      .attr("stroke-opacity", 0.75)
-      .attr("stroke-width", 1.5);
+    // Pinned halos render in the sibling overlay SVG so they stay at
+    // full opacity regardless of view mode and sit above WeatherLayer.
+    const pinnedG = gPinnedRef.current ? select(gPinnedRef.current) : null;
+    if (pinnedG) {
+      const pinnedNodes = nodes.filter((n) => pinnedSet.has(n.id));
+      const halos = pinnedG
+        .selectAll<SVGCircleElement, CelestialNode>("circle")
+        .data(pinnedNodes, (d: CelestialNode) => d.id);
+      halos.exit().remove();
+      halos
+        .enter()
+        .append("circle")
+        .merge(halos)
+        .attr("cx", (d) => d.x ?? 0)
+        .attr("cy", (d) => d.y ?? 0)
+        .attr("r", (d) => d.radius + 8)
+        .attr("fill", "none")
+        .attr("stroke", COLORS.sageGreen)
+        .attr("stroke-opacity", 0.85)
+        .attr("stroke-width", 1.5);
+    }
 
     // Pillar sector labels (faint watermarks)
     const pillarLabelGroup = gSel.selectAll<SVGGElement, null>(".pillar-labels").data([null]);
@@ -583,7 +594,10 @@ export function SkyCanvas({ graph, view = "stars", settings, onTogglePin }: Prop
       .text((d) => `${d.count} · ${d.pillar}`);
   }, [hoveredNode, activePillars, getConnectedIds, pinnedSet, settings.boundedUniverse, settings.showInfoHalos]);
 
+  // Keep the ref pointed at the latest renderFrame so the sim tick
+  // handler (which captured the first closure) always calls the fresh one.
   useEffect(() => {
+    renderFrameRef.current = renderFrame;
     renderFrame();
   }, [hoveredNode, activePillars, renderFrame, pinnedSet, settings.boundedUniverse, settings.showInfoHalos]);
 
@@ -673,7 +687,7 @@ export function SkyCanvas({ graph, view = "stars", settings, onTogglePin }: Prop
           left: 16,
           display: "flex",
           gap: 8,
-          zIndex: 10,
+          zIndex: Z.CHROME_INFO,
         }}
       >
         {PILLAR_ORDER.map((p) => (
@@ -712,7 +726,7 @@ export function SkyCanvas({ graph, view = "stars", settings, onTogglePin }: Prop
           position: "fixed",
           bottom: 16,
           left: 16,
-          zIndex: 10,
+          zIndex: Z.CHROME_INFO,
           color: COLORS.warmStone,
           fontFamily: "'Fraunces', Georgia, serif",
           fontSize: 14,
@@ -752,6 +766,23 @@ export function SkyCanvas({ graph, view = "stars", settings, onTogglePin }: Prop
           </filter>
         </defs>
         <g ref={gRef} />
+      </svg>
+
+      {/* Pinned-halo overlay — sits above WeatherLayer, ignores view-mode
+          dimming. Transform stays in lockstep via the zoom handler. */}
+      <svg
+        ref={pinnedSvgRef}
+        width="100%"
+        height="100%"
+        style={{
+          position: "fixed",
+          inset: 0,
+          pointerEvents: "none",
+          zIndex: Z.PINNED,
+        }}
+        aria-hidden="true"
+      >
+        <g ref={gPinnedRef} />
       </svg>
 
       {/* Breadcrumbs */}
