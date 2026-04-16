@@ -8,6 +8,7 @@ import { useSkySeat } from "./useSkySeat";
 import { useWeather } from "./useWeather";
 import { useSettings, isMotionReduced } from "./settings";
 import { StatusLine } from "./StatusLine";
+import { SettingsPanel } from "./SettingsPanel";
 import { COLORS } from "./celestial";
 
 function App() {
@@ -96,8 +97,12 @@ function App() {
         onComplete={completeRitual}
         onSkip={cancelRitual}
       />
-      {/* Settings/journal/ante-room/preset controls live here; wired in commits 2 and 3. */}
-      {void update}
+      <SettingsPanel
+        settings={settings}
+        onUpdate={update}
+        pinnedLabels={settings.pinnedNodes}
+        onUnpin={togglePin}
+      />
     </>
   );
 }
