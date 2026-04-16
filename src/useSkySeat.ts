@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { skySeatBackend } from "./skySeatBackend";
 
 export type ViewMode = "stars" | "weather" | "both";
 
@@ -60,11 +61,7 @@ export function useSkySeat() {
       );
       if (text.trim()) {
         try {
-          await fetch("/api/sky-seat/log", {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({ text, view: next ?? view }),
-          });
+          await skySeatBackend.log(text, (next ?? view) as string);
         } catch (err) {
           console.warn("[sky-seat] log failed", err);
         }

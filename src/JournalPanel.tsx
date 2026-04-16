@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react";
 import { COLORS } from "./celestial";
 import { Z } from "./z";
+import { skySeatBackend, type SkySeatEntry } from "./skySeatBackend";
 
-interface Entry {
-  date: string; // YYYY-MM-DD
-  lines: { time: string; view: string; text: string }[];
-}
+type Entry = SkySeatEntry;
 
 interface Props {
   open: boolean;
@@ -50,9 +48,9 @@ export function JournalPanel({ open, onClose }: Props) {
     if (!open) return;
     setEntries(null);
     setError(null);
-    fetch("/api/sky-seat/entries?days=30")
-      .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
-      .then((data: { entries: Entry[] }) => setEntries(data.entries))
+    skySeatBackend
+      .list(30)
+      .then((data) => setEntries(data))
       .catch((e) => setError(String(e)));
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();

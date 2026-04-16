@@ -16,7 +16,8 @@
       "Bash(python \"C:/tmp/sky-shots/run3.py\")",
       "Bash(python \"C:/tmp/sky-shots/run4.py\")",
       "Bash(python \"C:/tmp/sky-shots/run5.py\")",
-      "Bash(python *)"
+      "Bash(python *)",
+      "Bash(npx supabase *)"
     ]
   }
 }
