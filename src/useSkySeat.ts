@@ -77,7 +77,13 @@ export function useSkySeat() {
   );
 
   const cancelRitual = useCallback(() => {
-    // Cancelling still transitions the view — ritual is skippable by design.
+    // Skipping still counts as a ritual for throttle purposes — otherwise
+    // every toggle ambushes the user until they write something.
+    const persisted = loadPersisted();
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ ...persisted, lastRitualAt: Date.now() })
+    );
     if (pendingView) setViewState(pendingView);
     setPendingView(null);
     setRitualOpen(false);
