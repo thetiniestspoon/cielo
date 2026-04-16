@@ -25,6 +25,7 @@ import { Legend } from "./Legend";
 import { Breadcrumbs } from "./Breadcrumbs";
 import { findClusters, type Cluster } from "./horoscope";
 import type { ViewMode } from "./useSkySeat";
+import { seededOffset, type SkySettings, isMotionReduced } from "./settings";
 
 export interface CelestialNode extends SimulationNodeDatum {
   id: string;
@@ -46,9 +47,14 @@ interface CelestialLink extends SimulationLinkDatum<CelestialNode> {
 interface Props {
   graph: VaultGraph;
   view?: ViewMode;
+  settings: SkySettings;
+  onTogglePin: (nodeId: string) => void;
 }
 
-export function SkyCanvas({ graph, view = "stars" }: Props) {
+const ZOOM_KEY = "sky-zoom-v1";
+
+export function SkyCanvas({ graph, view = "stars", settings, onTogglePin }: Props) {
+  const reduceMotion = isMotionReduced(settings);
   const svgRef = useRef<SVGSVGElement>(null);
   const gRef = useRef<SVGGElement | null>(null);
   const simulationRef = useRef<ReturnType<typeof forceSimulation<CelestialNode>> | null>(null);
@@ -192,14 +198,15 @@ export function SkyCanvas({ graph, view = "stars" }: Props) {
     const spread = Math.min(width, height) * 0.3;
     spreadRef.current = { cx, cy, spread };
 
-    // Prepare nodes
+    // Prepare nodes — seeded initial positions so the map is in the
+    // same place every session (spatial memory stability).
     const nodes: CelestialNode[] = graph.nodes.map((n) => {
       const prepared = prepareCelestialNode(n);
       const target = getPillarSectorTarget(n.pillar as Pillar, cx, cy, spread);
       return {
         ...prepared,
-        x: target.x + (Math.random() - 0.5) * spread * 0.6,
-        y: target.y + (Math.random() - 0.5) * spread * 0.6,
+        x: target.x + seededOffset(n.id, "x") * spread * 0.3,
+        y: target.y + seededOffset(n.id, "y") * spread * 0.3,
       } as CelestialNode;
     });
 
@@ -231,7 +238,9 @@ export function SkyCanvas({ graph, view = "stars" }: Props) {
     hubsRef.current = hubs;
 
     // Custom orbital force: gentle tangential nudge for hub neighbors so clusters drift.
+    // Disabled entirely when reduce-motion is on.
     const orbitalForce = (alpha: number) => {
+      if (reduceMotion) return;
       const strength = 0.035;
       for (const hub of hubsRef.current) {
         if (hub.x == null || hub.y == null) continue;
@@ -281,31 +290,63 @@ export function SkyCanvas({ graph, view = "stars" }: Props) {
         renderFrame();
       });
 
-    // Keep a gentle simulation going forever so orbits visibly drift.
-    simulation.alphaMin(0.01);
+    // When reduce-motion is on, let the sim settle and then hold position.
+    // Otherwise keep a gentle drift indefinitely.
+    if (reduceMotion) {
+      simulation.alphaMin(0.05);
+    } else {
+      simulation.alphaMin(0.01);
+    }
 
     simulationRef.current = simulation;
 
-    // Set up zoom
+    // Set up zoom — persist last transform so the user returns to the
+    // same frame they left.
     const svgSelection = select(svg);
     const g = select(gRef.current!);
 
+    let persistTimer: ReturnType<typeof setTimeout> | null = null;
     const zoomBehavior = zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.2, 5])
       .on("zoom", (event) => {
         g.attr("transform", event.transform);
+        if (persistTimer) clearTimeout(persistTimer);
+        persistTimer = setTimeout(() => {
+          try {
+            localStorage.setItem(
+              ZOOM_KEY,
+              JSON.stringify({ x: event.transform.x, y: event.transform.y, k: event.transform.k })
+            );
+          } catch {
+            // ignore
+          }
+        }, 250);
       });
 
     zoomBehaviorRef.current = zoomBehavior;
     svgSelection.call(zoomBehavior);
-    svgSelection.call(zoomBehavior.transform, zoomIdentity.translate(0, 0).scale(1));
+
+    // Restore last transform if saved.
+    let startTransform = zoomIdentity.translate(0, 0).scale(1);
+    try {
+      const raw = localStorage.getItem(ZOOM_KEY);
+      if (raw) {
+        const t = JSON.parse(raw) as { x: number; y: number; k: number };
+        startTransform = zoomIdentity.translate(t.x, t.y).scale(t.k);
+      }
+    } catch {
+      // ignore
+    }
+    svgSelection.call(zoomBehavior.transform, startTransform);
 
     return () => {
       simulation.stop();
+      if (persistTimer) clearTimeout(persistTimer);
     };
-  }, [graph]);
+  }, [graph, reduceMotion]);
 
   // Render function
+  const pinnedSet = useMemo(() => new Set(settings.pinnedNodes), [settings.pinnedNodes]);
   const renderFrame = useCallback(() => {
     const g = gRef.current;
     if (!g) return;
@@ -316,15 +357,61 @@ export function SkyCanvas({ graph, view = "stars" }: Props) {
     const connectedIds = hovered ? getConnectedIds(hovered) : null;
     const { cx, cy, spread } = spreadRef.current;
 
-    // Filter by active pillars
-    const nodes = allNodes.filter((n) => activePillars.has(n.pillar));
+    // Filter by active pillars — but pinned nodes bypass the filter so
+    // the user's anchors never vanish.
+    const nodes = allNodes.filter((n) => activePillars.has(n.pillar) || pinnedSet.has(n.id));
     const links = allLinks.filter((d) => {
       const s = d.source as CelestialNode;
       const t = d.target as CelestialNode;
-      return activePillars.has(s.pillar) && activePillars.has(t.pillar);
+      const sOk = activePillars.has(s.pillar) || pinnedSet.has(s.id);
+      const tOk = activePillars.has(t.pillar) || pinnedSet.has(t.id);
+      return sOk && tOk;
     });
 
     const gSel = select(g);
+
+    // Bounded universe — a faint rim near the sector horizon so the
+    // canvas reads as finite, not infinite.
+    const rimGroup = gSel.selectAll<SVGGElement, null>(".rim").data([null]);
+    const rimEnter = rimGroup.enter().append("g").attr("class", "rim");
+    const rimContainer = rimEnter.merge(rimGroup);
+    const rimCircle = rimContainer.selectAll<SVGCircleElement, null>("circle").data(
+      settings.boundedUniverse ? [null] : []
+    );
+    rimCircle.exit().remove();
+    rimCircle
+      .enter()
+      .append("circle")
+      .merge(rimCircle)
+      .attr("cx", cx)
+      .attr("cy", cy)
+      .attr("r", spread * 1.9)
+      .attr("fill", "none")
+      .attr("stroke", COLORS.warmStone)
+      .attr("stroke-opacity", 0.14)
+      .attr("stroke-width", 1.25)
+      .attr("stroke-dasharray", "1,6");
+
+    // Pinned halos (render under node circles so they glow around them).
+    const haloGroup = gSel.selectAll<SVGGElement, null>(".pinned-halos").data([null]);
+    const haloEnter = haloGroup.enter().append("g").attr("class", "pinned-halos");
+    const haloContainer = haloEnter.merge(haloGroup);
+    const pinnedNodes = nodes.filter((n) => pinnedSet.has(n.id));
+    const halos = haloContainer
+      .selectAll<SVGCircleElement, CelestialNode>("circle")
+      .data(pinnedNodes, (d: CelestialNode) => d.id);
+    halos.exit().remove();
+    halos
+      .enter()
+      .append("circle")
+      .merge(halos)
+      .attr("cx", (d) => d.x ?? 0)
+      .attr("cy", (d) => d.y ?? 0)
+      .attr("r", (d) => d.radius + 8)
+      .attr("fill", "none")
+      .attr("stroke", COLORS.sageGreen)
+      .attr("stroke-opacity", 0.75)
+      .attr("stroke-width", 1.5);
 
     // Pillar sector labels (faint watermarks)
     const pillarLabelGroup = gSel.selectAll<SVGGElement, null>(".pillar-labels").data([null]);
@@ -462,18 +549,43 @@ export function SkyCanvas({ graph, view = "stars" }: Props) {
       .attr("y", (d) => d.cy)
       .attr("text-anchor", "middle")
       .attr("fill", COLORS.warmStone)
-      .attr("fill-opacity", 0.32)
+      .attr("fill-opacity", 0.42)
       .attr("font-size", "15px")
       .attr("font-family", "'Fraunces', Georgia, serif")
       .attr("font-style", "italic")
       .attr("letter-spacing", "0.5")
       .style("pointer-events", "none")
       .text((d) => d.name);
-  }, [hoveredNode, activePillars, getConnectedIds]);
+
+    // Info halos — node count subtitle under each cluster name.
+    const clusterInfoGroup = gSel.selectAll<SVGGElement, null>(".cluster-info").data([null]);
+    const clusterInfoEnter = clusterInfoGroup.enter().append("g").attr("class", "cluster-info");
+    const clusterInfoContainer = clusterInfoEnter.merge(clusterInfoGroup);
+
+    const clusterInfoData = settings.showInfoHalos ? clusterData : [];
+    const clusterInfos = clusterInfoContainer
+      .selectAll<SVGTextElement, Cluster & { count: number }>("text")
+      .data(clusterInfoData, (d) => d.id);
+
+    clusterInfos.exit().remove();
+
+    clusterInfos.enter().append("text")
+      .merge(clusterInfos)
+      .attr("x", (d) => d.cx)
+      .attr("y", (d) => d.cy + 16)
+      .attr("text-anchor", "middle")
+      .attr("fill", COLORS.warmStone)
+      .attr("fill-opacity", 0.28)
+      .attr("font-size", "10px")
+      .attr("font-family", "'Nunito', system-ui, sans-serif")
+      .attr("letter-spacing", "1px")
+      .style("pointer-events", "none")
+      .text((d) => `${d.count} · ${d.pillar}`);
+  }, [hoveredNode, activePillars, getConnectedIds, pinnedSet, settings.boundedUniverse, settings.showInfoHalos]);
 
   useEffect(() => {
     renderFrame();
-  }, [hoveredNode, activePillars, renderFrame]);
+  }, [hoveredNode, activePillars, renderFrame, pinnedSet, settings.boundedUniverse, settings.showInfoHalos]);
 
   // Hit-test helper
   const hitTest = useCallback((clientX: number, clientY: number): CelestialNode | null => {
@@ -657,6 +769,9 @@ export function SkyCanvas({ graph, view = "stars" }: Props) {
         <DetailOverlay
           node={selectedNode}
           edges={getNodeEdges(selectedNode.id)}
+          pinned={pinnedSet.has(selectedNode.id)}
+          onTogglePin={() => onTogglePin(selectedNode.id)}
+          autoDismissMs={settings.autoDismissMs}
           onClose={() => {
             setSelectedNode(null);
             setNavigationHistory([]);

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { VaultEdge, CelestialType, Pillar } from "./types";
 import { COLORS, getCelestialColor } from "./celestial";
 
@@ -18,6 +18,9 @@ interface Props {
   onClose: () => void;
   onNavigate: (nodeId: string) => void;
   onBack?: () => void;
+  pinned?: boolean;
+  onTogglePin?: () => void;
+  autoDismissMs?: number;
 }
 
 const CELESTIAL_LABELS: Record<CelestialType, string> = {
@@ -27,9 +30,27 @@ const CELESTIAL_LABELS: Record<CelestialType, string> = {
   firefly: "Firefly",
 };
 
-export function DetailOverlay({ node, edges, onClose, onNavigate, onBack }: Props) {
+export function DetailOverlay({ node, edges, onClose, onNavigate, onBack, pinned, onTogglePin, autoDismissMs = 0 }: Props) {
   const [expanded, setExpanded] = useState(false);
   const obsidianUrl = `obsidian://open?vault=PersonalOS-Vault&file=${encodeURIComponent(node.path.replace(/\.md$/, ""))}`;
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const idleRef = useRef<number>(Date.now() + autoDismissMs);
+
+  // Auto-dismiss: reset timer on any interaction within the overlay.
+  useEffect(() => {
+    if (autoDismissMs <= 0) return;
+    idleRef.current = Date.now() + autoDismissMs;
+    const id = setInterval(() => {
+      if (Date.now() >= idleRef.current) {
+        onClose();
+      }
+    }, 500);
+    return () => clearInterval(id);
+  }, [node.id, autoDismissMs, onClose]);
+
+  const bumpIdle = () => {
+    if (autoDismissMs > 0) idleRef.current = Date.now() + autoDismissMs;
+  };
 
   const connections = edges.map((e) => {
     const connectedId = e.source === node.id ? e.target : e.source;
@@ -38,6 +59,10 @@ export function DetailOverlay({ node, edges, onClose, onNavigate, onBack }: Prop
 
   return (
     <div
+      ref={containerRef}
+      onMouseMove={bumpIdle}
+      onMouseDown={bumpIdle}
+      onKeyDown={bumpIdle}
       style={{
         position: "fixed",
         bottom: 0,
@@ -126,6 +151,26 @@ export function DetailOverlay({ node, edges, onClose, onNavigate, onBack }: Prop
         >
           {CELESTIAL_LABELS[node.celestialType]}
         </span>
+
+        {/* Pin */}
+        {onTogglePin && (
+          <button
+            onClick={onTogglePin}
+            title={pinned ? "Unpin — stop anchoring this" : "Pin — keep this visible across filters"}
+            style={{
+              padding: "4px 10px",
+              background: pinned ? "rgba(168, 181, 160, 0.22)" : "rgba(168, 181, 160, 0.06)",
+              border: `1px solid ${COLORS.sageGreen}55`,
+              borderRadius: 6,
+              color: pinned ? COLORS.sageGreen : COLORS.warmStone,
+              fontSize: 11,
+              cursor: "pointer",
+              fontFamily: "'Nunito', system-ui, sans-serif",
+            }}
+          >
+            {pinned ? "\u2605 pinned" : "\u2606 pin"}
+          </button>
+        )}
 
         {/* Obsidian link */}
         <a

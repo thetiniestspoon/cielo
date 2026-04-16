@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { COLORS } from "./celestial";
 import type { ViewMode } from "./useSkySeat";
+import type { BreathPattern } from "./settings";
 
 interface ToggleProps {
   view: ViewMode;
@@ -62,42 +63,86 @@ export function SkySeatToggle({ view, onRequestView }: ToggleProps) {
 interface RitualProps {
   open: boolean;
   pendingView: ViewMode | null;
+  prompt?: string;
+  breathPattern?: BreathPattern;
+  silent?: boolean;
+  reduceMotion?: boolean;
   onComplete: (text: string) => void;
   onSkip: () => void;
 }
 
-type Phase = "breath-in" | "breath-out" | "prompt";
+type Phase = "breath-in" | "breath-hold-in" | "breath-out" | "breath-hold-out" | "prompt";
 
-export function SkySeatRitual({ open, pendingView, onComplete, onSkip }: RitualProps) {
-  const [phase, setPhase] = useState<Phase>("breath-in");
+function phaseSequence(pattern: BreathPattern): Array<{ phase: Phase; ms: number; label: string; scale: number; duration: string }> {
+  if (pattern === "box") {
+    return [
+      { phase: "breath-in", ms: 4000, label: "Breathe in", scale: 1.15, duration: "4s" },
+      { phase: "breath-hold-in", ms: 4000, label: "Hold", scale: 1.15, duration: "0s" },
+      { phase: "breath-out", ms: 4000, label: "Breathe out", scale: 0.85, duration: "4s" },
+      { phase: "breath-hold-out", ms: 4000, label: "Hold", scale: 0.85, duration: "0s" },
+    ];
+  }
+  if (pattern === "none") {
+    return [];
+  }
+  // default "4-6"
+  return [
+    { phase: "breath-in", ms: 4000, label: "Breathe in", scale: 1.15, duration: "4s" },
+    { phase: "breath-out", ms: 6000, label: "Breathe out", scale: 0.85, duration: "6s" },
+  ];
+}
+
+export function SkySeatRitual({ open, pendingView, prompt, breathPattern = "4-6", silent = false, reduceMotion = false, onComplete, onSkip }: RitualProps) {
+  const [phaseIdx, setPhaseIdx] = useState<number>(0);
+  const [inPrompt, setInPrompt] = useState(false);
   const [text, setText] = useState("");
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const sequence = phaseSequence(reduceMotion ? "none" : breathPattern);
 
   useEffect(() => {
     if (!open) {
-      setPhase("breath-in");
+      setPhaseIdx(0);
       setText("");
+      setInPrompt(false);
       return;
     }
-    const t1 = setTimeout(() => setPhase("breath-out"), 4000);
-    const t2 = setTimeout(() => setPhase("prompt"), 10000);
+    // If silent mode, skip breath + prompt and complete immediately with empty text.
+    if (silent) {
+      onComplete("");
+      return;
+    }
+    // If no breath pattern, go straight to prompt.
+    if (sequence.length === 0) {
+      setInPrompt(true);
+      return;
+    }
+    let elapsed = 0;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    sequence.forEach((step, i) => {
+      elapsed += step.ms;
+      if (i < sequence.length - 1) {
+        timers.push(setTimeout(() => setPhaseIdx(i + 1), elapsed));
+      }
+    });
+    timers.push(setTimeout(() => setInPrompt(true), elapsed));
     return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
+      timers.forEach(clearTimeout);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   useEffect(() => {
-    if (phase === "prompt") {
+    if (inPrompt) {
       setTimeout(() => inputRef.current?.focus(), 50);
     }
-  }, [phase]);
+  }, [inPrompt]);
 
   if (!open) return null;
 
-  const breathLabel = phase === "breath-in" ? "Breathe in" : phase === "breath-out" ? "Breathe out" : "";
-  const breathScale = phase === "breath-in" ? 1.15 : phase === "breath-out" ? 0.85 : 1;
-  const breathDuration = phase === "breath-in" ? "4s" : "6s";
+  const step = sequence[phaseIdx];
+  const breathLabel = step?.label ?? "";
+  const breathScale = step?.scale ?? 1;
+  const breathDuration = step?.duration ?? "0s";
 
   return (
     <div
@@ -115,7 +160,7 @@ export function SkySeatRitual({ open, pendingView, onComplete, onSkip }: RitualP
         color: COLORS.softCream,
       }}
     >
-      {phase !== "prompt" ? (
+      {!inPrompt ? (
         <div style={{ textAlign: "center" }}>
           <div
             style={{
@@ -157,7 +202,7 @@ export function SkySeatRitual({ open, pendingView, onComplete, onSkip }: RitualP
               color: COLORS.softCream,
             }}
           >
-            What are you the sky of right now?
+            {prompt || "What are you the sky of right now?"}
           </p>
           <textarea
             ref={inputRef}

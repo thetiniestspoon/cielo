@@ -8,6 +8,7 @@ interface Props {
   opacity: number; // overall layer opacity (crossfade)
   width: number;
   height: number;
+  reduceMotion?: boolean;
 }
 
 interface Positioned extends WeatherCell {
@@ -33,16 +34,16 @@ function halfLifePhrase(days: number, lastTouched: string | null): string {
   return `fades in ${Math.round(remaining)}d unless touched`;
 }
 
-export function WeatherLayer({ cells, opacity, width, height }: Props) {
+export function WeatherLayer({ cells, opacity, width, height, reduceMotion = false }: Props) {
   const [tick, setTick] = useState(0);
   const [hovered, setHovered] = useState<string | null>(null);
 
-  // Slow drift animation — 12s per cycle at ~30fps equivalent.
+  // Slow drift animation — disabled entirely when reduce-motion is on.
   useEffect(() => {
-    if (opacity <= 0.01) return; // don't animate if hidden
+    if (opacity <= 0.01 || reduceMotion) return;
     const id = setInterval(() => setTick((t) => t + 1), 80);
     return () => clearInterval(id);
-  }, [opacity]);
+  }, [opacity, reduceMotion]);
 
   const positioned: Positioned[] = useMemo(() => {
     const cx = width / 2;
@@ -84,7 +85,7 @@ export function WeatherLayer({ cells, opacity, width, height }: Props) {
         inset: 0,
         pointerEvents: "none",
         opacity,
-        transition: "opacity 0.5s ease",
+        transition: reduceMotion ? "none" : "opacity 0.5s ease",
         zIndex: 5,
       }}
     >
