@@ -57,6 +57,27 @@ body {
   background: rgba(168, 181, 160, 0.4);
 }
 
+/* Visible keyboard focus on all interactive elements — accessibility. */
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #e8d5a3;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+button,
+[role="button"],
+a,
+input,
+select,
+textarea {
+  outline: none;
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

@@ -348,9 +348,21 @@ export function SkyCanvas({ graph, view = "stars", settings, onTogglePin }: Prop
     }
     svgSelection.call(zoomBehavior.transform, startTransform);
 
+    // Pause the simulation when the tab is hidden — saves CPU on
+    // laptops without changing any user-visible state.
+    const onVisibility = () => {
+      if (document.hidden) {
+        simulation.stop();
+      } else {
+        simulation.alpha(Math.max(simulation.alpha(), 0.08)).restart();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
     return () => {
       simulation.stop();
       if (persistTimer) clearTimeout(persistTimer);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [graph, reduceMotion]);
 

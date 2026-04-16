@@ -38,9 +38,15 @@ function readLastRitual(): string | null {
 
 export function StatusLine({ view, cells, vaultSyncedAt, nodeCount }: Props) {
   const [, setTick] = useState(0);
+  const [narrow, setNarrow] = useState(typeof window !== "undefined" ? window.innerWidth < 900 : false);
   useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), 60000);
-    return () => clearInterval(id);
+    const onResize = () => setNarrow(window.innerWidth < 900);
+    window.addEventListener("resize", onResize);
+    return () => {
+      clearInterval(id);
+      window.removeEventListener("resize", onResize);
+    };
   }, []);
 
   const urgent = cells.filter((c) => c.kind === "pressure" && c.intensity >= 0.8).length;
@@ -61,10 +67,10 @@ export function StatusLine({ view, cells, vaultSyncedAt, nodeCount }: Props) {
         borderRadius: 14,
         padding: "6px 16px",
         fontFamily: "'Nunito', system-ui, sans-serif",
-        fontSize: 11,
+        fontSize: 12,
         letterSpacing: 0.3,
         color: COLORS.softCream,
-        opacity: 0.72,
+        opacity: 0.82,
         display: "flex",
         gap: 14,
         alignItems: "center",
@@ -81,11 +87,11 @@ export function StatusLine({ view, cells, vaultSyncedAt, nodeCount }: Props) {
       <span>{nodeCount} stars</span>
       <span style={{ opacity: 0.5 }}>·</span>
       <span style={{ color: urgent ? COLORS.planetWarm : undefined }}>{urgent} urgent</span>
-      <span style={{ opacity: 0.4 }}>/ {warm} warm / {cool} cool</span>
+      {!narrow && <span style={{ opacity: 0.4 }}>/ {warm} warm / {cool} cool</span>}
       <span style={{ opacity: 0.5 }}>·</span>
       <span>ritual {relTime(lastRitual)}</span>
-      <span style={{ opacity: 0.5 }}>·</span>
-      <span>synced {relTime(vaultSyncedAt)}</span>
+      {!narrow && <span style={{ opacity: 0.5 }}>·</span>}
+      {!narrow && <span>synced {relTime(vaultSyncedAt)}</span>}
     </div>
   );
 }

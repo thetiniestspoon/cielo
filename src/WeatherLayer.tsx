@@ -27,12 +27,19 @@ const KIND_COLOR: Record<WeatherCell["kind"], string> = {
   mood: COLORS.cometTrail,
 };
 
+// Glyph + label per kind so the weather type is readable without color.
+const KIND_GLYPH: Record<WeatherCell["kind"], string> = {
+  pressure: "\u25B2", // ▲ rising pressure
+  heat: "\u25CF",     // ● heat mass
+  mood: "\u2B25",     // ⬥ mood
+};
+
 function halfLifePhrase(days: number, lastTouched: string | null): string {
   if (!lastTouched) return `half-life ${days}d`;
   const diff = (Date.now() - Date.parse(lastTouched)) / (1000 * 60 * 60 * 24);
-  const remaining = Math.max(0, days - diff);
+  const remaining = days - diff;
   if (remaining < 1) return `fading now`;
-  return `fades in ${Math.round(remaining)}d unless touched`;
+  return `fades in ${Math.max(1, Math.round(remaining))}d unless touched`;
 }
 
 export function WeatherLayer({ cells, opacity, width, height, reduceMotion = false }: Props) {
@@ -122,6 +129,18 @@ export function WeatherLayer({ cells, opacity, width, height, reduceMotion = fal
                 fill={KIND_COLOR[c.kind]}
                 fillOpacity={isHovered ? 0.6 : 0.35}
               />
+              {/* Type glyph — complements color encoding for color-blind users. */}
+              <text
+                x={c.baseX + driftX}
+                y={c.baseY + driftY + 4}
+                textAnchor="middle"
+                fontSize={Math.max(10, Math.min(14, c.radius * 0.3))}
+                fill={COLORS.deepSky}
+                fillOpacity={isHovered ? 0.9 : 0.55}
+                style={{ pointerEvents: "none", fontFamily: "sans-serif" }}
+              >
+                {KIND_GLYPH[c.kind]}
+              </text>
               {isHovered && (
                 <g>
                   <rect

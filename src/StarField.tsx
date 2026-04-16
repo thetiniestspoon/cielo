@@ -82,6 +82,7 @@ function starColor(warmth: number, alpha: number): string {
 export function StarField({ reduceMotion = false, density = 1.4 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const starsRef = useRef<Star[]>([]);
+  const sizeCacheRef = useRef<Map<string, Star[]>>(new Map());
   const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -101,7 +102,17 @@ export function StarField({ reduceMotion = false, density = 1.4 }: Props) {
       canvas.style.width = w + "px";
       canvas.style.height = h + "px";
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      starsRef.current = makeStars(w, h, density);
+      // Cache by size bucket (rounded to nearest 100px) so resize
+      // doesn't reroll positions — stars stay in the same place.
+      const bw = Math.round(w / 100) * 100;
+      const bh = Math.round(h / 100) * 100;
+      const key = `${bw}x${bh}x${density}`;
+      let stars = sizeCacheRef.current.get(key);
+      if (!stars) {
+        stars = makeStars(w, h, density);
+        sizeCacheRef.current.set(key, stars);
+      }
+      starsRef.current = stars;
       drawStatic();
     }
 
