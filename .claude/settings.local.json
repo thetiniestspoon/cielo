@@ -8,7 +8,12 @@
       "Bash(python -c \"import playwright; print\\(playwright.__version__\\)\")",
       "Bash(python run.py)",
       "Bash(python \"C:/tmp/sky-shots/run.py\")",
-      "Bash(grep -E \"\\\\.png$\")"
+      "Bash(grep -E \"\\\\.png$\")",
+      "Bash(pkill -f \"node.*vite\")",
+      "Bash(pkill -f \"node.*sync-sky\")",
+      "Bash(curl -sS -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:5173/)",
+      "Bash(python \"C:/tmp/sky-shots/run2.py\")",
+      "Bash(python \"C:/tmp/sky-shots/run3.py\")"
     ]
   }
 }

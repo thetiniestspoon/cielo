@@ -6,6 +6,7 @@ import type { BreathPattern } from "./settings";
 interface ToggleProps {
   view: ViewMode;
   onRequestView: (v: ViewMode) => void;
+  onCycle?: () => void;
 }
 
 const MODES: { value: ViewMode; label: string }[] = [
@@ -14,7 +15,7 @@ const MODES: { value: ViewMode; label: string }[] = [
   { value: "weather", label: "Weather" },
 ];
 
-export function SkySeatToggle({ view, onRequestView }: ToggleProps) {
+export function SkySeatToggle({ view, onRequestView, onCycle }: ToggleProps) {
   return (
     <div
       style={{
@@ -56,6 +57,27 @@ export function SkySeatToggle({ view, onRequestView }: ToggleProps) {
           </button>
         );
       })}
+      {onCycle && (
+        <button
+          onClick={onCycle}
+          title="Cycle to the next mode (no choice required)"
+          aria-label="Cycle view"
+          style={{
+            background: "transparent",
+            border: "none",
+            color: "rgba(240,234,214,0.45)",
+            borderRadius: 20,
+            padding: "6px 10px",
+            fontSize: 14,
+            cursor: "pointer",
+            fontFamily: "inherit",
+            marginLeft: 4,
+            borderLeft: `1px solid ${COLORS.warmStone}22`,
+          }}
+        >
+          {"\u21BB"}
+        </button>
+      )}
     </div>
   );
 }

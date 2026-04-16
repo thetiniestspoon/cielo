@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { COLORS } from "./celestial";
 import type { SkySettings, BreathPattern } from "./settings";
 
@@ -92,6 +92,15 @@ export function SettingsButton({ onClick }: { onClick: () => void }) {
 
 export function SettingsPanel({ settings, onUpdate, pinnedLabels, onUnpin }: Props) {
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [open]);
 
   return (
     <>

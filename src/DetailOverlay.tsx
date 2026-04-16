@@ -102,7 +102,7 @@ export function DetailOverlay({ node, edges, onClose, onNavigate, onBack, pinned
             onMouseLeave={(e) => { e.currentTarget.style.opacity = "0.6"; }}
             aria-label="Back"
           >
-            \u2190
+            {"\u2190"}
           </button>
         )}
 
@@ -189,7 +189,7 @@ export function DetailOverlay({ node, edges, onClose, onNavigate, onBack, pinned
           onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(168, 181, 160, 0.2)"; }}
           onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(168, 181, 160, 0.1)"; }}
         >
-          Obsidian \u2192
+          Obsidian {"\u2192"}
         </a>
 
         {/* Close */}
@@ -206,7 +206,7 @@ export function DetailOverlay({ node, edges, onClose, onNavigate, onBack, pinned
           }}
           aria-label="Close"
         >
-          \u00d7
+          {"\u00d7"}
         </button>
       </div>
 
@@ -293,7 +293,7 @@ export function DetailOverlay({ node, edges, onClose, onNavigate, onBack, pinned
                 onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(240,234,214,0.1)"; }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(240,234,214,0.04)"; }}
               >
-                <span style={{ color: COLORS.constellationLine }}>\u2014</span>
+                <span style={{ color: COLORS.constellationLine }}>{"\u2014"}</span>
                 {c.id.length > 22 ? c.id.slice(0, 20) + "\u2026" : c.id}
               </button>
             ))}
@@ -317,7 +317,7 @@ export function DetailOverlay({ node, edges, onClose, onNavigate, onBack, pinned
             fontFamily: "'Nunito', system-ui, sans-serif",
           }}
         >
-          \u25bc expand
+          {"\u25bc"} expand
         </button>
       )}
     </div>

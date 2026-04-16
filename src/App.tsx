@@ -1,22 +1,29 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useVaultGraph } from "./useVaultGraph";
 import { SkyCanvas } from "./SkyCanvas";
 import { StarField } from "./StarField";
 import { WeatherLayer } from "./WeatherLayer";
 import { SkySeatToggle, SkySeatRitual } from "./SkySeat";
-import { useSkySeat } from "./useSkySeat";
+import { useSkySeat, type ViewMode } from "./useSkySeat";
 import { useWeather } from "./useWeather";
 import { useSettings, isMotionReduced } from "./settings";
 import { StatusLine } from "./StatusLine";
 import { SettingsPanel } from "./SettingsPanel";
+import { AnteRoom } from "./AnteRoom";
+import { DiffPill } from "./DiffPill";
+import { JournalPanel, JournalButton } from "./JournalPanel";
 import { COLORS } from "./celestial";
 
+const CYCLE_ORDER: ViewMode[] = ["stars", "both", "weather"];
+
 function App() {
-  const { graph, error, syncedAt } = useVaultGraph();
+  const { graph, error, syncedAt, diff, clearDiff } = useVaultGraph();
   const { view, requestView, ritualOpen, pendingView, completeRitual, cancelRitual } = useSkySeat();
   const { cells } = useWeather();
   const { settings, update, togglePin } = useSettings();
   const [size, setSize] = useState({ w: window.innerWidth, h: window.innerHeight });
+  const [entered, setEntered] = useState(false);
+  const [journalOpen, setJournalOpen] = useState(false);
 
   useEffect(() => {
     const onResize = () => setSize({ w: window.innerWidth, h: window.innerHeight });
@@ -25,6 +32,12 @@ function App() {
   }, []);
 
   const reduceMotion = useMemo(() => isMotionReduced(settings), [settings]);
+
+  const onCycle = useCallback(() => {
+    const idx = CYCLE_ORDER.indexOf(view);
+    const next = CYCLE_ORDER[(idx + 1) % CYCLE_ORDER.length];
+    requestView(next);
+  }, [view, requestView]);
 
   if (error) {
     return (
@@ -63,6 +76,7 @@ function App() {
   }
 
   const weatherOpacity = view === "weather" ? 0.9 : view === "both" ? 0.55 : 0;
+  const showAnteRoom = settings.anteRoomEnabled && !entered;
 
   return (
     <>
@@ -80,13 +94,14 @@ function App() {
         height={size.h}
         reduceMotion={reduceMotion}
       />
-      <SkySeatToggle view={view} onRequestView={requestView} />
+      <SkySeatToggle view={view} onRequestView={requestView} onCycle={onCycle} />
       <StatusLine
         view={view}
         cells={cells}
         vaultSyncedAt={syncedAt}
         nodeCount={graph.nodes.length}
       />
+      {diff && <DiffPill diff={diff} onDismiss={clearDiff} />}
       <SkySeatRitual
         open={ritualOpen}
         pendingView={pendingView}
@@ -97,12 +112,21 @@ function App() {
         onComplete={completeRitual}
         onSkip={cancelRitual}
       />
+      <JournalButton onClick={() => setJournalOpen(true)} />
+      <JournalPanel open={journalOpen} onClose={() => setJournalOpen(false)} />
       <SettingsPanel
         settings={settings}
         onUpdate={update}
         pinnedLabels={settings.pinnedNodes}
         onUnpin={togglePin}
       />
+      {showAnteRoom && (
+        <AnteRoom
+          nodeCount={graph.nodes.length}
+          syncedAt={syncedAt}
+          onEnter={() => setEntered(true)}
+        />
+      )}
     </>
   );
 }
