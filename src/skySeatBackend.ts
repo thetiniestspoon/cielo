@@ -21,14 +21,14 @@ export interface SkySeatBackend {
 
 export const DevAdapter: SkySeatBackend = {
   async log(text, view) {
-    await fetch("/api/sky-seat/log", {
+    await fetch(`${import.meta.env.BASE_URL}api/sky-seat/log`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ text, view }),
     });
   },
   async list(days) {
-    const r = await fetch(`/api/sky-seat/entries?days=${days}`);
+    const r = await fetch(`${import.meta.env.BASE_URL}api/sky-seat/entries?days=${days}`);
     if (!r.ok) throw new Error(`fetch entries: ${r.status}`);
     const data = (await r.json()) as { entries: SkySeatEntry[] };
     return data.entries;

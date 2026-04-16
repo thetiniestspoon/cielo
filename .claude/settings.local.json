@@ -17,7 +17,13 @@
       "Bash(python \"C:/tmp/sky-shots/run4.py\")",
       "Bash(python \"C:/tmp/sky-shots/run5.py\")",
       "Bash(python *)",
-      "Bash(npx supabase *)"
+      "Bash(npx supabase *)",
+      "Bash(node *)",
+      "Bash(gh repo *)",
+      "Bash(gh api *)",
+      "Bash(gh run *)",
+      "Bash(curl -sS -o /dev/null -w \"HTTP %{http_code}\\\\n\" https://thetiniestspoon.github.io/personalos-sky/)",
+      "Bash(curl -sS -o /dev/null -w \"vault_graph: %{http_code}\\\\n\" https://thetiniestspoon.github.io/personalos-sky/vault_graph.json)"
     ]
   }
 }

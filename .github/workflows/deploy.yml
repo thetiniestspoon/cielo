@@ -63,6 +63,11 @@ jobs:
       - run: npm run build
         env:
           VITE_BASE_PATH: /personalos-sky/
+          # Family Core Supabase — anon key is safe to publish because
+          # sky_seat_entries has RLS that ties every row to auth.uid().
+          # If you ever need to rotate, set these as repo secrets instead.
+          VITE_SUPABASE_URL: https://ckjcieeccopqowlfljja.supabase.co
+          VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNramNpZWVjY29wcW93bGZsamphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyOTM1NzAsImV4cCI6MjA4OTg2OTU3MH0.Gv7PvYuNfEo12a_bdfZ_5hAYFrb6faRzpccj654W39Q
 
       - uses: actions/upload-pages-artifact@v3
         with:

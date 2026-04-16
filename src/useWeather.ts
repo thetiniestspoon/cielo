@@ -100,10 +100,11 @@ export function useWeather() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const base = import.meta.env.BASE_URL;
     Promise.all([
-      fetchJsonOrNull<PressureSnapshot>("/weather/pressure.json"),
-      fetchJsonOrNull<SignalsFile>("/weather/heat.json"),
-      fetchJsonOrNull<MoodFile>("/weather/mood.json"),
+      fetchJsonOrNull<PressureSnapshot>(`${base}weather/pressure.json`),
+      fetchJsonOrNull<SignalsFile>(`${base}weather/heat.json`),
+      fetchJsonOrNull<MoodFile>(`${base}weather/mood.json`),
     ])
       .then(([p, h, m]) => {
         setPressure(p);
