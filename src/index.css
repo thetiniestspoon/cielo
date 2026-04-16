@@ -13,6 +13,17 @@ html, body, #root {
   background: #1a1a2e;
 }
 
+/* Daylight theme override — applied to body[data-theme="daylight"]. A
+   creative exploration of the sky metaphor in day colors. Not all
+   components are fully tuned for legibility here yet. */
+body[data-theme="daylight"] {
+  background: linear-gradient(to bottom, #87ceeb 0%, #b0d4e3 55%, #f5e4c3 100%);
+}
+
+body[data-theme="daylight"] #root {
+  background: transparent;
+}
+
 body {
   font-family: 'Nunito', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;

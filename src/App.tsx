@@ -33,6 +33,14 @@ function App() {
 
   const reduceMotion = useMemo(() => isMotionReduced(settings), [settings]);
 
+  // Apply theme attribute to <body> so CSS can swap the backdrop.
+  useEffect(() => {
+    document.body.dataset.theme = settings.theme;
+    return () => {
+      delete document.body.dataset.theme;
+    };
+  }, [settings.theme]);
+
   const onCycle = useCallback(() => {
     const idx = CYCLE_ORDER.indexOf(view);
     const next = CYCLE_ORDER[(idx + 1) % CYCLE_ORDER.length];
@@ -80,7 +88,8 @@ function App() {
 
   return (
     <>
-      <StarField reduceMotion={reduceMotion} />
+      {/* Starfield hidden in daylight mode — there are no visible stars at noon. */}
+      {settings.theme !== "daylight" && <StarField reduceMotion={reduceMotion} />}
       <SkyCanvas
         graph={graph}
         view={view}

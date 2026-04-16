@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { COLORS } from "./celestial";
-import type { SkySettings, BreathPattern } from "./settings";
+import type { SkySettings, BreathPattern, Theme } from "./settings";
 import { Z } from "./z";
 
 interface Props {
@@ -145,6 +145,15 @@ export function SettingsPanel({ settings, onUpdate, pinnedLabels, onUnpin }: Pro
               >
                 {"\u00d7"}
               </button>
+            </div>
+
+            <div style={rowStyle}>
+              <label style={labelStyle}>Theme</label>
+              <div>
+                <Chip label="Night" active={settings.theme === "night"} onClick={() => onUpdate({ theme: "night" as Theme })} />
+                <Chip label="Daylight (preview)" active={settings.theme === "daylight"} onClick={() => onUpdate({ theme: "daylight" as Theme })} />
+              </div>
+              <p style={{ fontSize: 10, opacity: 0.5, margin: "6px 0 0" }}>Daylight is a creative exploration — not all chrome is fully tuned for legibility yet.</p>
             </div>
 
             <div style={rowStyle}>

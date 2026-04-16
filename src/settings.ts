@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 
 export type BreathPattern = "4-6" | "box" | "none";
 export type Preset = "morning" | "evening" | null;
+export type Theme = "night" | "daylight";
 
 export interface SkySettings {
   // Motion
@@ -19,6 +20,7 @@ export interface SkySettings {
   // Presentation
   showInfoHalos: boolean;
   boundedUniverse: boolean;
+  theme: Theme;
   // Presets / cycle
   activePreset: Preset;
 }
@@ -33,6 +35,7 @@ export const DEFAULTS: SkySettings = {
   pinnedNodes: [],
   showInfoHalos: true,
   boundedUniverse: true,
+  theme: "night",
   activePreset: null,
 };
 
