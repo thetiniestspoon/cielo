@@ -1,0 +1,11 @@
+{
+  "generated": "2026-04-16T00:00:00Z",
+  "schema_version": 1,
+  "global_decay": 0.95,
+  "hubs": {
+    "home": { "weight": 0.65, "touch_count_7d": 3, "last_touched": "2026-04-15T00:00:00Z", "sources": ["demo"] },
+    "side-project": { "weight": 0.45, "touch_count_7d": 2, "last_touched": "2026-04-16T00:00:00Z", "sources": ["demo"] },
+    "meditation": { "weight": 0.35, "touch_count_7d": 1, "last_touched": "2026-04-14T00:00:00Z", "sources": ["demo"] },
+    "idea-inbox": { "weight": 0.28, "touch_count_7d": 2, "last_touched": "2026-04-12T00:00:00Z", "sources": ["demo"] }
+  }
+}

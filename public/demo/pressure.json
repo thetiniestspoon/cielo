@@ -1,0 +1,12 @@
+{
+  "generated": "2026-04-16T00:00:00Z",
+  "urgent": [
+    { "project": "Side Project", "stream": "E", "staleness": "active", "recentCommits": "today", "daysSinceLastCommit": 0, "lastCommitISO": "2026-04-16T10:00:00Z" }
+  ],
+  "stale": [
+    { "project": "Notebook", "stream": "E", "staleness": "stale", "recentCommits": "5d ago", "daysSinceLastCommit": 5, "lastCommitISO": "2026-04-11T10:00:00Z" }
+  ],
+  "dormant": [
+    { "project": "Reading", "stream": "I", "staleness": "dormant", "recentCommits": "30d+ ago", "daysSinceLastCommit": 35, "lastCommitISO": "2026-03-12T10:00:00Z" }
+  ]
+}

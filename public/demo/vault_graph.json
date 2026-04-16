@@ -1,0 +1,31 @@
+{
+  "nodes": [
+    { "id": "Home", "path": "Foundations/Home.md", "pillar": "foundations", "tags": ["foundations"], "description": "The center of daily life.", "connectionCount": 4 },
+    { "id": "Partner", "path": "Relationship/Partner.md", "pillar": "relationship", "tags": ["person"], "description": "A primary bond.", "connectionCount": 3 },
+    { "id": "Child", "path": "Relationship/Child.md", "pillar": "relationship", "tags": ["person"], "description": "A child.", "connectionCount": 2 },
+    { "id": "Work", "path": "Growth/Work.md", "pillar": "growth", "tags": ["app"], "description": "Ongoing work.", "connectionCount": 3 },
+    { "id": "Side Project", "path": "Growth/Side Project.md", "pillar": "growth", "tags": ["app"], "description": "A thing being made.", "connectionCount": 2 },
+    { "id": "Meditation", "path": "Spirit/Meditation.md", "pillar": "spirit", "tags": ["practice"], "description": "Daily practice.", "connectionCount": 2 },
+    { "id": "Community", "path": "Spirit/Community.md", "pillar": "spirit", "tags": ["person"], "description": "People you sit with.", "connectionCount": 2 },
+    { "id": "Reading", "path": "Exploration/Reading.md", "pillar": "exploration", "tags": ["practice"], "description": "What I'm reading.", "connectionCount": 2 },
+    { "id": "Idea Inbox", "path": "Exploration/Idea Inbox.md", "pillar": "exploration", "tags": ["idea"], "description": "Sparks.", "connectionCount": 3 },
+    { "id": "Notebook", "path": "Exploration/Notebook.md", "pillar": "exploration", "tags": ["idea"], "description": "Where things land.", "connectionCount": 2 },
+    { "id": "Budget", "path": "Foundations/Budget.md", "pillar": "foundations", "tags": ["app"], "description": "Money flows.", "connectionCount": 2 },
+    { "id": "Health", "path": "Foundations/Health.md", "pillar": "foundations", "tags": ["practice"], "description": "Body tending.", "connectionCount": 2 }
+  ],
+  "edges": [
+    { "source": "Home", "target": "Partner", "label": "with", "bidirectional": true },
+    { "source": "Home", "target": "Child", "label": "with", "bidirectional": true },
+    { "source": "Home", "target": "Budget", "label": "stewards", "bidirectional": false },
+    { "source": "Home", "target": "Health", "label": "holds", "bidirectional": false },
+    { "source": "Partner", "target": "Child", "label": "co-parents", "bidirectional": true },
+    { "source": "Work", "target": "Side Project", "label": "adjacent-to", "bidirectional": true },
+    { "source": "Work", "target": "Budget", "label": "feeds", "bidirectional": false },
+    { "source": "Meditation", "target": "Community", "label": "practiced-with", "bidirectional": true },
+    { "source": "Meditation", "target": "Reading", "label": "informs", "bidirectional": false },
+    { "source": "Reading", "target": "Idea Inbox", "label": "sparks", "bidirectional": false },
+    { "source": "Idea Inbox", "target": "Notebook", "label": "settles-into", "bidirectional": false },
+    { "source": "Idea Inbox", "target": "Side Project", "label": "seeds", "bidirectional": false }
+  ],
+  "meta": { "noteCount": 12, "edgeCount": 12, "pillarCounts": { "foundations": 3, "relationship": 2, "growth": 2, "spirit": 2, "exploration": 3 } }
+}

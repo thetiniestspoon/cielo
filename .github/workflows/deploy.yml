@@ -1,0 +1,72 @@
+# Deploy PersonalOS Sky to GitHub Pages.
+#
+# NEEDS-USER: before this workflow can run,
+#   1. Create the GitHub repository: `gh repo create thetiniestspoon/personalos-sky --public`
+#   2. Add the remote: `git remote add origin https://github.com/thetiniestspoon/personalos-sky.git`
+#   3. Push main:      `git push -u origin main`
+#   4. In GitHub → Settings → Pages, set source = "GitHub Actions".
+#
+# The workflow uses a stub vault_graph.json from public/demo/ for the
+# public build — the real vault graph is not committed. Users viewing
+# the Pages site see a curated demo instead of Shawn's full vault.
+
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Seed demo vault graph for public build
+        run: |
+          mkdir -p public/weather
+          if [ -f public/demo/vault_graph.json ]; then
+            cp public/demo/vault_graph.json public/vault_graph.json
+          fi
+          if [ -f public/demo/pressure.json ]; then
+            cp public/demo/pressure.json public/weather/pressure.json
+          fi
+          if [ -f public/demo/heat.json ]; then
+            cp public/demo/heat.json public/weather/heat.json
+          fi
+          if [ -f public/demo/mood.json ]; then
+            cp public/demo/mood.json public/weather/mood.json
+          fi
+
+      - run: npm run test
+
+      - run: npm run build
+        env:
+          VITE_BASE_PATH: /personalos-sky/
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
