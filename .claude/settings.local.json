@@ -13,7 +13,8 @@
       "Bash(pkill -f \"node.*sync-sky\")",
       "Bash(curl -sS -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:5173/)",
       "Bash(python \"C:/tmp/sky-shots/run2.py\")",
-      "Bash(python \"C:/tmp/sky-shots/run3.py\")"
+      "Bash(python \"C:/tmp/sky-shots/run3.py\")",
+      "Bash(python \"C:/tmp/sky-shots/run4.py\")"
     ]
   }
 }

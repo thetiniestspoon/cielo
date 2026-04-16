@@ -80,7 +80,7 @@ function App() {
 
   return (
     <>
-      <StarField />
+      <StarField reduceMotion={reduceMotion} />
       <SkyCanvas
         graph={graph}
         view={view}
