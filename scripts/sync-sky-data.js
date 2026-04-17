@@ -17,11 +17,6 @@ const CC = "C:/Users/shawn/OneDrive/Documents/ADL-Foundry/GitRepositories/comman
 
 const MAPPINGS = [
   { src: path.join(VAULT, "_meta/vault_graph.json"), dest: path.join(PUBLIC, "vault_graph.json") },
-  // Cortex v2 hub registry — supplies type (project/person/place/artifact)
-  // and visibility (public/private) for companion-constellation rendering
-  // and visibility gating. The public standalone deploy.yml strips/replaces
-  // this before publishing so private person hubs never leak.
-  { src: path.join(VAULT, "_meta/hubs.json"), dest: path.join(PUBLIC, "hubs.json") },
   { src: path.join(CC, "assist-snapshot.json"), dest: path.join(PUBLIC, "weather/pressure.json") },
   { src: path.join(VAULT, "_meta/signals.json"), dest: path.join(PUBLIC, "weather/heat.json") },
   { src: path.join(CC, "sessions.json"), dest: path.join(PUBLIC, "weather/mood.json") },
