@@ -1,5 +1,67 @@
 import { useEffect, useMemo, useState } from "react";
 import { slugify } from "./slugify";
+import { getSupabaseClient, hasSupabaseSession } from "./supabaseClient";
+
+function isEmbeddedContext(): boolean {
+  try {
+    return (
+      new URLSearchParams(window.location.search).get("embedded") === "1" ||
+      window.self !== window.top
+    );
+  } catch {
+    return false;
+  }
+}
+
+async function fetchHubsFromSupabase(): Promise<Record<string, Hub> | null> {
+  try {
+    const client = await getSupabaseClient();
+    if (!client) return null;
+    const { data, error } = await client
+      .from("vault_hubs")
+      .select("id,title,pillar,summary,canonical_path,type,visibility");
+    if (error || !Array.isArray(data)) return null;
+    const out: Record<string, Hub> = {};
+    for (const row of data) {
+      out[row.id] = {
+        id: row.id,
+        title: row.title,
+        pillar: row.pillar,
+        summary: row.summary ?? undefined,
+        canonical_path: row.canonical_path ?? undefined,
+        type: row.type,
+        visibility: row.visibility,
+      };
+    }
+    return out;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchSignalsFromSupabase(): Promise<SignalsFile["hubs"] | null> {
+  try {
+    const client = await getSupabaseClient();
+    if (!client) return null;
+    const { data, error } = await client
+      .from("vault_signals")
+      .select("id,weight,activity_weight,presence_weight,touch_count_7d,last_touched");
+    if (error || !Array.isArray(data)) return null;
+    const out: SignalsFile["hubs"] = {};
+    for (const row of data) {
+      out[row.id] = {
+        weight: row.weight ?? 0,
+        activity_weight: row.activity_weight ?? undefined,
+        presence_weight: row.presence_weight ?? undefined,
+        touch_count_7d: row.touch_count_7d ?? undefined,
+        last_touched: row.last_touched ?? undefined,
+      };
+    }
+    return out;
+  } catch {
+    return null;
+  }
+}
 
 // Cortex v2 hub shape (subset we care about). See
 // _meta/cortex/build_hubs.py for the source of truth.
@@ -72,13 +134,35 @@ export function useHubRegistry() {
 
   useEffect(() => {
     const base = (import.meta.env.VITE_DATA_BASE as string | undefined) || import.meta.env.BASE_URL;
-    Promise.all([
-      fetchJsonOrNull<HubsFile>(`${base}hubs.json`),
-      fetchJsonOrNull<SignalsFile>(`${base}weather/heat.json`),
-    ]).then(([h, s]) => {
+    let cancelled = false;
+
+    (async () => {
+      // Supabase branch: embedded + authed operator session present.
+      if (isEmbeddedContext() && (await hasSupabaseSession())) {
+        const [h, s] = await Promise.all([
+          fetchHubsFromSupabase(),
+          fetchSignalsFromSupabase(),
+        ]);
+        if (!cancelled && h && s) {
+          setHubs(h);
+          setSignals(s);
+          return;
+        }
+        // Eligible for Supabase but fetch failed — warn once, continue to static.
+        console.warn("[useHubRegistry] Supabase fetch failed; falling back to static hubs.json");
+      }
+
+      // Static fallback — vault_hubs stays public-only once Plan 05 retires the file.
+      const [h, s] = await Promise.all([
+        fetchJsonOrNull<HubsFile>(`${base}hubs.json`),
+        fetchJsonOrNull<SignalsFile>(`${base}weather/heat.json`),
+      ]);
+      if (cancelled) return;
       setHubs(h?.hubs ?? {});
       setSignals(s?.hubs ?? {});
-    });
+    })();
+
+    return () => { cancelled = true; };
   }, []);
 
   const bindings = useMemo<Map<string, HubBinding>>(() => {

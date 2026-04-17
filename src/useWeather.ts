@@ -1,5 +1,41 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Pillar } from "./types";
+import { getSupabaseClient, hasSupabaseSession } from "./supabaseClient";
+
+function isEmbeddedContext(): boolean {
+  try {
+    return (
+      new URLSearchParams(window.location.search).get("embedded") === "1" ||
+      window.self !== window.top
+    );
+  } catch {
+    return false;
+  }
+}
+
+async function fetchHeatFromSupabase(): Promise<SignalsFile | null> {
+  try {
+    const client = await getSupabaseClient();
+    if (!client) return null;
+    const { data, error } = await client
+      .from("vault_signals")
+      .select("id,weight,activity_weight,presence_weight,touch_count_7d,last_touched");
+    if (error || !Array.isArray(data)) return null;
+    const hubs: SignalsFile["hubs"] = {};
+    for (const row of data) {
+      hubs[row.id] = {
+        weight: row.weight ?? 0,
+        activity_weight: row.activity_weight ?? undefined,
+        presence_weight: row.presence_weight ?? undefined,
+        touch_count_7d: row.touch_count_7d ?? 0,
+        last_touched: row.last_touched ?? "",
+      };
+    }
+    return { generated: new Date().toISOString(), global_decay: 0.95, hubs };
+  } catch {
+    return null;
+  }
+}
 
 export type WeatherKind = "pressure" | "heat" | "mood";
 
@@ -108,17 +144,37 @@ export function useWeather() {
 
   useEffect(() => {
     const base = (import.meta.env.VITE_DATA_BASE as string | undefined) || import.meta.env.BASE_URL;
-    Promise.all([
-      fetchJsonOrNull<PressureSnapshot>(`${base}weather/pressure.json`),
-      fetchJsonOrNull<SignalsFile>(`${base}weather/heat.json`),
-      fetchJsonOrNull<MoodFile>(`${base}weather/mood.json`),
-    ])
-      .then(([p, h, m]) => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        // Pressure + mood remain file-based (tier-1/tier-2 tolerable).
+        const pressurePromise = fetchJsonOrNull<PressureSnapshot>(`${base}weather/pressure.json`);
+        const moodPromise = fetchJsonOrNull<MoodFile>(`${base}weather/mood.json`);
+
+        // Heat: Supabase-first when embedded + authed; else static.
+        let heatResult: SignalsFile | null = null;
+        if (isEmbeddedContext() && (await hasSupabaseSession())) {
+          heatResult = await fetchHeatFromSupabase();
+          if (!heatResult) {
+            console.warn("[useWeather] Supabase heat fetch failed; falling back to static heat.json");
+          }
+        }
+        if (!heatResult) {
+          heatResult = await fetchJsonOrNull<SignalsFile>(`${base}weather/heat.json`);
+        }
+
+        const [p, m] = await Promise.all([pressurePromise, moodPromise]);
+        if (cancelled) return;
         setPressure(p);
-        setHeat(h);
+        setHeat(heatResult);
         setMood(m);
-      })
-      .catch((e) => setError(String(e)));
+      } catch (e) {
+        if (!cancelled) setError(String(e));
+      }
+    })();
+
+    return () => { cancelled = true; };
   }, []);
 
   const cells: WeatherCell[] = useMemo(() => {
