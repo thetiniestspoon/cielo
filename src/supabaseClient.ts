@@ -19,7 +19,7 @@ export function getSupabaseClient(): Promise<any | null> {
     clientPromise = Promise.resolve(null);
     return clientPromise;
   }
-  clientPromise = import(/* @vite-ignore */ "@supabase/supabase-js").then((m) =>
+  clientPromise = import("@supabase/supabase-js").then((m) =>
     m.createClient(url, key, {
       auth: {
         storage: window.localStorage,
