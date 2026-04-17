@@ -10,6 +10,9 @@ interface Props {
   width: number;
   height: number;
   reduceMotion?: boolean;
+  // Zoom/pan transform mirrored from SkyCanvas so weather cells stay
+  // anchored to their pillar sectors as the user moves the sky.
+  transform?: { x: number; y: number; k: number };
 }
 
 interface Positioned extends WeatherCell {
@@ -42,7 +45,7 @@ function halfLifePhrase(days: number, lastTouched: string | null): string {
   return `fades in ${Math.max(1, Math.round(remaining))}d unless touched`;
 }
 
-export function WeatherLayer({ cells, opacity, width, height, reduceMotion = false }: Props) {
+export function WeatherLayer({ cells, opacity, width, height, reduceMotion = false, transform }: Props) {
   const [tick, setTick] = useState(0);
   const [hovered, setHovered] = useState<string | null>(null);
 
@@ -103,6 +106,13 @@ export function WeatherLayer({ cells, opacity, width, height, reduceMotion = fal
             <feGaussianBlur stdDeviation="12" />
           </filter>
         </defs>
+        <g
+          transform={
+            transform
+              ? `translate(${transform.x},${transform.y}) scale(${transform.k})`
+              : undefined
+          }
+        >
         {positioned.map((c) => {
           const driftX = Math.cos(t + c.phase) * 8;
           const driftY = Math.sin(t * 0.8 + c.phase * 1.3) * 6;
@@ -207,6 +217,7 @@ export function WeatherLayer({ cells, opacity, width, height, reduceMotion = fal
             </text>
           );
         })}
+        </g>
       </svg>
     </div>
   );

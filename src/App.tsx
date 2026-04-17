@@ -30,6 +30,13 @@ function App() {
     (window.self !== window.top);
   const [entered, setEntered] = useState(isEmbedded);
   const [journalOpen, setJournalOpen] = useState(false);
+  // Lifted zoom transform so sibling layers (WeatherLayer) can mirror
+  // the star sky's pan/zoom and stay anchored to their pillar sectors.
+  const [skyTransform, setSkyTransform] = useState<{ x: number; y: number; k: number }>({
+    x: 0,
+    y: 0,
+    k: 1,
+  });
 
   useEffect(() => {
     const onResize = () => setSize({ w: window.innerWidth, h: window.innerHeight });
@@ -101,6 +108,7 @@ function App() {
         view={view}
         settings={settings}
         onTogglePin={togglePin}
+        onTransformChange={setSkyTransform}
       />
       <WeatherLayer
         cells={cells}
@@ -108,6 +116,7 @@ function App() {
         width={size.w}
         height={size.h}
         reduceMotion={reduceMotion}
+        transform={skyTransform}
       />
       <SkySeatToggle view={view} onRequestView={requestView} onCycle={onCycle} />
       <StatusLine

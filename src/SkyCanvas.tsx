@@ -50,11 +50,14 @@ interface Props {
   view?: ViewMode;
   settings: SkySettings;
   onTogglePin: (nodeId: string) => void;
+  // Fires on every zoom/pan event + once on initial restore, so siblings
+  // (WeatherLayer, etc.) can mirror the transform and stay aligned.
+  onTransformChange?: (t: { x: number; y: number; k: number }) => void;
 }
 
 const ZOOM_KEY = "sky-zoom-v1";
 
-export function SkyCanvas({ graph, view = "stars", settings, onTogglePin }: Props) {
+export function SkyCanvas({ graph, view = "stars", settings, onTogglePin, onTransformChange }: Props) {
   const reduceMotion = isMotionReduced(settings);
   const svgRef = useRef<SVGSVGElement>(null);
   const gRef = useRef<SVGGElement | null>(null);
@@ -319,6 +322,11 @@ export function SkyCanvas({ graph, view = "stars", settings, onTogglePin }: Prop
         if (gPinnedRef.current) {
           select(gPinnedRef.current).attr("transform", event.transform);
         }
+        onTransformChange?.({
+          x: event.transform.x,
+          y: event.transform.y,
+          k: event.transform.k,
+        });
         if (persistTimer) clearTimeout(persistTimer);
         persistTimer = setTimeout(() => {
           try {
