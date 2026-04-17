@@ -100,7 +100,7 @@ export function useWeather() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const base = import.meta.env.BASE_URL;
+    const base = (import.meta.env.VITE_DATA_BASE as string | undefined) || import.meta.env.BASE_URL;
     Promise.all([
       fetchJsonOrNull<PressureSnapshot>(`${base}weather/pressure.json`),
       fetchJsonOrNull<SignalsFile>(`${base}weather/heat.json`),

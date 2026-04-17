@@ -22,7 +22,13 @@ function App() {
   const { cells } = useWeather();
   const { settings, update, togglePin } = useSettings();
   const [size, setSize] = useState({ w: window.innerWidth, h: window.innerHeight });
-  const [entered, setEntered] = useState(false);
+  // Skip the AnteRoom entry gate when embedded (e.g. inside command-center's
+  // workshop, which is already operator-authed). Detection: ?embedded=1 in the
+  // URL, or running inside an iframe on a different parent origin.
+  const isEmbedded =
+    new URLSearchParams(window.location.search).get("embedded") === "1" ||
+    (window.self !== window.top);
+  const [entered, setEntered] = useState(isEmbedded);
   const [journalOpen, setJournalOpen] = useState(false);
 
   useEffect(() => {

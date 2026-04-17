@@ -15,7 +15,8 @@ export function useVaultGraph() {
   const [diff, setDiff] = useState<GraphDiff | null>(null);
 
   useEffect(() => {
-    fetch(`${import.meta.env.BASE_URL}vault_graph.json`)
+    const dataBase = (import.meta.env.VITE_DATA_BASE as string | undefined) || import.meta.env.BASE_URL;
+    fetch(`${dataBase}vault_graph.json`)
       .then((res) => {
         if (!res.ok) throw new Error(`Failed to load vault graph: ${res.status}`);
         const lastModified = res.headers.get("last-modified");
