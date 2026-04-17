@@ -68,7 +68,7 @@ export function AnteRoom({ nodeCount, syncedAt, onEnter }: Props) {
             color: COLORS.softCream,
           }}
         >
-          PersonalOS Sky
+          Cielo
         </h1>
         <p
           style={{

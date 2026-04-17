@@ -1,4 +1,4 @@
-# PersonalOS Sky
+# Cielo
 
 Celestial graph visualization of a knowledge vault — D3.js force-directed constellation map with search, navigation, and pillar-based sectoring.
 
