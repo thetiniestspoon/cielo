@@ -6,6 +6,7 @@ import { WeatherLayer } from "./WeatherLayer";
 import { SkySeatToggle, SkySeatRitual } from "./SkySeat";
 import { useSkySeat, type ViewMode } from "./useSkySeat";
 import { useWeather } from "./useWeather";
+import { useHubRegistry } from "./useHubRegistry";
 import { useSettings, isMotionReduced } from "./settings";
 import { StatusLine } from "./StatusLine";
 import { SettingsPanel } from "./SettingsPanel";
@@ -20,6 +21,7 @@ function App() {
   const { graph, error, syncedAt, diff, clearDiff } = useVaultGraph();
   const { view, requestView, ritualOpen, pendingView, completeRitual, cancelRitual } = useSkySeat();
   const { cells } = useWeather();
+  const { bindingFor } = useHubRegistry();
   const { settings, update, togglePin } = useSettings();
   const [size, setSize] = useState({ w: window.innerWidth, h: window.innerHeight });
   // Skip the AnteRoom entry gate when embedded (e.g. inside command-center's
@@ -99,16 +101,35 @@ function App() {
   const weatherOpacity = view === "weather" ? 0.9 : view === "both" ? 0.55 : 0;
   const showAnteRoom = settings.anteRoomEnabled && !entered;
 
+  // Gap 6 — visibility gate. Standalone Cielo (public URL) filters
+  // visibility:private hubs (typically type:person) out of both nodes and
+  // edges. Embedded Cielo inherits the parent's auth gate and shows
+  // everything.
+  const visibleGraph = (() => {
+    if (isEmbedded) return graph;
+    const hidden = new Set<string>();
+    for (const n of graph.nodes) {
+      if (bindingFor(n.id).visibility === "private") hidden.add(n.id);
+    }
+    if (hidden.size === 0) return graph;
+    return {
+      ...graph,
+      nodes: graph.nodes.filter((n) => !hidden.has(n.id)),
+      edges: graph.edges.filter((e) => !hidden.has(e.source) && !hidden.has(e.target)),
+    };
+  })();
+
   return (
     <>
       {/* Starfield hidden in daylight mode — there are no visible stars at noon. */}
       {settings.theme !== "daylight" && <StarField reduceMotion={reduceMotion} />}
       <SkyCanvas
-        graph={graph}
+        graph={visibleGraph}
         view={view}
         settings={settings}
         onTogglePin={togglePin}
         onTransformChange={setSkyTransform}
+        bindingFor={bindingFor}
       />
       <WeatherLayer
         cells={cells}

@@ -53,11 +53,21 @@ interface Props {
   // Fires on every zoom/pan event + once on initial restore, so siblings
   // (WeatherLayer, etc.) can mirror the transform and stay aligned.
   onTransformChange?: (t: { x: number; y: number; k: number }) => void;
+  // Cortex v2 binding — given a node's title, return its hub type,
+  // visibility, and activity/presence axes. Stars modulate size/opacity
+  // by presence_weight (Cielo's "fixed life in constellations" = slow
+  // axis); person-typed hubs get companion-constellation treatment.
+  bindingFor?: (nodeId: string) => {
+    type: "project" | "person" | "place" | "artifact" | undefined;
+    visibility: "public" | "private" | undefined;
+    activity: number;
+    presence: number;
+  };
 }
 
 const ZOOM_KEY = "sky-zoom-v1";
 
-export function SkyCanvas({ graph, view = "stars", settings, onTogglePin, onTransformChange }: Props) {
+export function SkyCanvas({ graph, view = "stars", settings, onTogglePin, onTransformChange, bindingFor }: Props) {
   const reduceMotion = isMotionReduced(settings);
   const svgRef = useRef<SVGSVGElement>(null);
   const gRef = useRef<SVGGElement | null>(null);
@@ -426,11 +436,27 @@ export function SkyCanvas({ graph, view = "stars", settings, onTogglePin, onTran
     // full opacity regardless of view mode and sit above WeatherLayer.
     const pinnedG = gPinnedRef.current ? select(gPinnedRef.current) : null;
     if (pinnedG) {
-      const pinnedNodes = nodes.filter((n) => pinnedSet.has(n.id));
+      // Gap 3 — type:person hubs auto-halo as companion constellations.
+      // They're the "fixed stars" of the user's relational life and are
+      // visibility:private, so only embedded (authed) Cielo ever sees
+      // them; gap 6 filters them out of the standalone view upstream.
+      const pinnedNodes = nodes.filter(
+        (n) => pinnedSet.has(n.id) || (bindingFor?.(n.id).type === "person"),
+      );
       const halos = pinnedG
         .selectAll<SVGCircleElement, CelestialNode>("circle")
         .data(pinnedNodes, (d: CelestialNode) => d.id);
       halos.exit().remove();
+      // Gap 4 — halo color by hub type. project=sage (default),
+      // person=warm planet tone (family/companions), place=warmStone,
+      // artifact=softCream. Cortex v2 type field drives it.
+      const haloColorFor = (nodeId: string): string => {
+        const t = bindingFor ? bindingFor(nodeId).type : undefined;
+        if (t === "person") return COLORS.planetWarm;
+        if (t === "place") return COLORS.warmStone;
+        if (t === "artifact") return COLORS.softCream;
+        return COLORS.sageGreen;
+      };
       halos
         .enter()
         .append("circle")
@@ -439,7 +465,7 @@ export function SkyCanvas({ graph, view = "stars", settings, onTogglePin, onTran
         .attr("cy", (d) => d.y ?? 0)
         .attr("r", (d) => d.radius + 8)
         .attr("fill", "none")
-        .attr("stroke", COLORS.sageGreen)
+        .attr("stroke", (d) => haloColorFor(d.id))
         .attr("stroke-opacity", 0.85)
         .attr("stroke-width", 1.5);
     }
@@ -512,11 +538,21 @@ export function SkyCanvas({ graph, view = "stars", settings, onTogglePin, onTran
       .merge(nodeCircles)
       .attr("cx", (d) => d.x!)
       .attr("cy", (d) => d.y!)
-      .attr("r", (d) => d.radius)
+      // Radius scales gently by Cortex presence_weight — slow-axis
+      // hubs (anchor people, long-sustained projects) render a bit
+      // brighter/bigger. Multiplier 1.0 → 1.4 for presence 0 → 1.
+      .attr("r", (d) => {
+        const p = bindingFor ? bindingFor(d.id).presence : 0;
+        return d.radius * (1 + 0.4 * p);
+      })
       .attr("fill", (d) => d.color)
       .attr("fill-opacity", (d) => {
-        if (!connectedIds) return d.celestialType === "firefly" ? 0.5 : 0.8;
-        return connectedIds.has(d.id) ? 1 : 0.1;
+        const p = bindingFor ? bindingFor(d.id).presence : 0;
+        const boost = 1 + 0.15 * p; // +15% at full presence, subtle lift
+        const base = connectedIds
+          ? (connectedIds.has(d.id) ? 1 : 0.1)
+          : (d.celestialType === "firefly" ? 0.5 : 0.8);
+        return Math.min(1, base * boost);
       })
       .attr("stroke", (d) => d.celestialType === "planet" ? COLORS.warmStone : "none")
       .attr("stroke-width", (d) => (d.celestialType === "planet" ? 1.5 : 0))

@@ -37,6 +37,11 @@ interface PressureSnapshot {
   active?: PressureProject[];
 }
 
+// Cortex v2 two-axis signals: `activity_weight` is the fast-decay (7d half
+// life) reachability score, `presence_weight` is the slow-decay (28d) emergence
+// score. `weight` is the derived composite 0.6a + 0.4p kept for backcompat.
+// Weather cells map to the ACTIVITY axis (matches the metaphor: weather is
+// what's moving right now). Stars map to presence_weight in SkyCanvas.
 interface SignalsFile {
   generated: string;
   global_decay?: number;
@@ -44,6 +49,8 @@ interface SignalsFile {
     string,
     {
       weight: number;
+      activity_weight?: number;
+      presence_weight?: number;
       touch_count_7d: number;
       last_touched: string;
       sources?: unknown[];
@@ -139,21 +146,26 @@ export function useWeather() {
       bucketize(pressure.dormant, "dormant", 0.28, 14);
     }
 
-    // Heat: hubs with nontrivial weight. Use global_decay to infer half-life.
+    // Heat cells read the Cortex v2 ACTIVITY axis — that's the fast-decay
+    // signal, which is what weather IS. `weight` (composite) would mix in
+    // presence and blur the metaphor. Falls back to `weight` only if the
+    // signals file predates Cortex v2 (`activity_weight` missing).
     if (heat) {
       const decay = heat.global_decay ?? 0.95;
-      // weight(t) = w * decay^t  →  t_half = log(0.5) / log(decay)
+      // activity(t) = a * decay^t  →  t_half = log(0.5) / log(decay)
       const halfLifeDays = Math.max(1, Math.round(Math.log(0.5) / Math.log(decay)));
       const entries = Object.entries(heat.hubs || {});
       for (const [slug, h] of entries) {
-        if (!h || h.weight < 0.15) continue; // only show warm-ish heat
+        if (!h) continue;
+        const activity = h.activity_weight ?? h.weight ?? 0;
+        if (activity < 0.15) continue; // only show cells with real recency
         out.push({
           id: `heat-${slug}`,
           kind: "heat",
           label: slug.replace(/^\d+-/, "").replace(/-/g, " "),
-          detail: `heat ${h.weight.toFixed(2)} · touched ${h.touch_count_7d}×/7d`,
+          detail: `activity ${activity.toFixed(2)} · touched ${h.touch_count_7d}×/7d`,
           pillar: slugToPillar(slug),
-          intensity: clamp01(h.weight),
+          intensity: clamp01(activity),
           halfLifeDays,
           lastTouched: h.last_touched,
         });
